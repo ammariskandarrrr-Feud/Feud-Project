@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#FF6B35">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Feed">
+  <link rel="manifest" href="manifest.json">
+  <title>Feed — Klang Valley Food Discovery</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;background:#F5EDE0;display:flex;align-items:flex-start;justify-content:center;overflow-x:hidden;}
+    #app{font-family:'DM Sans','Segoe UI',system-ui,sans-serif;width:100%;max-width:420px;min-height:100dvh;background:linear-gradient(160deg,#FFF8F0,#FFF3E6 40%,#FFF0DC 100%);display:flex;flex-direction:column;position:relative;overflow:hidden;}
+
+    /* HEADER */
+    .hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 7px;background:rgba(196,81,42,.08);flex-shrink:0;}
+    .logo{display:flex;align-items:center;gap:7px;}
+    .ltxt{font-family:Georgia,serif;font-size:28px;color:#C4512A;line-height:1;font-style:italic;}
+
+    /* LOCATION SELECTOR */
+    .loc-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+    .loc-gps{font-size:10px;color:#A06040;cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px;}
+    .loc-gps svg{flex-shrink:0;}
+    .loc-gps.active{color:#16A34A;}
+    .loc-tabs{display:flex;border-radius:20px;border:1.5px solid rgba(196,81,42,.3);overflow:hidden;background:rgba(255,255,255,.6);}
+    .loc-tab{padding:3px 10px;font-size:11px;font-weight:500;color:#A06040;cursor:pointer;transition:.2s;user-select:none;white-space:nowrap;}
+    .loc-tab.on{background:#C4512A;color:#fff;}
+
+    /* TABS */
+    .tabs{display:flex;background:rgba(196,81,42,.08);flex-shrink:0;}
+    .tab{flex:1;text-align:center;padding:7px 0 5px;font-size:13px;font-weight:500;color:rgba(196,81,42,.5);cursor:pointer;border-bottom:3px solid transparent;transition:.2s;position:relative;user-select:none;}
+    .tab.on{color:#C4512A;border-bottom:3px solid #C4512A;}
+    .nbadge{position:absolute;top:5px;right:20px;background:#EF4444;color:#fff;font-size:10px;min-width:16px;height:16px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 3px;}
+
+    /* DISCOVER */
+    #pdiscover{display:flex;flex-direction:column;flex:1;min-height:0;}
+    .moodbar{padding:6px 14px 7px;background:rgba(196,81,42,.06);flex-shrink:0;}
+    .mlbl{font-size:10px;color:#A06040;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+    .pills{display:flex;gap:5px;flex-wrap:wrap;}
+    .pill{display:flex;align-items:center;gap:4px;padding:4px 9px;border-radius:20px;border:1.5px solid rgba(196,81,42,.3);background:rgba(255,255,255,.6);color:#8B4020;font-size:11px;font-weight:500;cursor:pointer;transition:.2s;user-select:none;}
+    .pill:hover{background:rgba(196,81,42,.1);}
+    .pill.on{border-color:#C4512A;background:rgba(196,81,42,.15);color:#C4512A;}
+    .pdot{width:7px;height:7px;border-radius:50%;background:rgba(196,81,42,.3);transition:.2s;flex-shrink:0;}
+    .pill.on .pdot{background:#FF8C00;}
+    .filterbar{padding:4px 18px 6px;background:rgba(196,81,42,.06);flex-shrink:0;}
+    .frow{display:flex;justify-content:space-between;font-size:10px;color:#A06040;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;}
+    .fval{font-weight:500;color:#C4512A;font-size:11px;}
+    input[type=range]{width:100%;accent-color:#C4512A;height:4px;cursor:pointer;display:block;}
+    .cardarea{flex:1;display:flex;align-items:flex-end;justify-content:center;position:relative;overflow:hidden;min-height:0;padding-bottom:8px;}
+    .stack{position:relative;width:340px;height:370px;flex-shrink:0;}
+
+    /* CARDS */
+    .card{position:absolute;top:0;left:0;width:340px;border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 8px 28px rgba(196,81,42,.18);touch-action:none;user-select:none;cursor:grab;}
+    .card.mid{z-index:5;transform:scale(.95) translateY(12px);pointer-events:none;filter:brightness(.97);}
+    .card.bot{z-index:1;transform:scale(.9) translateY(24px);pointer-events:none;filter:brightness(.93);}
+    .card.top{z-index:10;}
+    .card.gr{transition:transform .4s cubic-bezier(.5,.05,.6,1.1),opacity .4s;transform:translateX(160%) rotate(28deg)!important;opacity:0;pointer-events:none;cursor:default;}
+    .card.gl{transition:transform .4s cubic-bezier(.5,.05,.6,1.1),opacity .4s;transform:translateX(-160%) rotate(-28deg)!important;opacity:0;pointer-events:none;cursor:default;}
+    .cimg{width:100%;height:130px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:#f0e8dc;}
+    .cimg img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .3s;}
+    .cimg img.loading{opacity:0;} .cimg img.loaded{opacity:1;}
+    .cimg .emoji-fb{position:absolute;font-size:46px;line-height:1;pointer-events:none;}
+    .btl{position:absolute;top:8px;left:8px;background:rgba(255,255,255,.93);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:500;color:#5A4035;z-index:2;}
+    .btr{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.93);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:500;color:#C4512A;z-index:2;}
+    .bbl{position:absolute;bottom:7px;left:8px;background:rgba(196,81,42,.88);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:500;color:#fff;z-index:2;}
+    .bbr{position:absolute;bottom:7px;right:8px;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:500;z-index:2;}
+    .open-pill{position:absolute;top:30px;left:8px;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;color:#fff;z-index:2;}
+    .open-yes{background:#16A34A;} .open-no{background:#DC2626;}
+    .mg{background:rgba(34,197,94,.85);color:#fff;} .md{background:rgba(239,68,68,.82);color:#fff;} .mk{background:rgba(99,102,241,.85);color:#fff;} .mn{background:rgba(139,92,246,.85);color:#fff;} .mf{background:rgba(249,115,22,.9);color:#fff;} .ms{background:rgba(236,72,153,.85);color:#fff;}
+    .cbody{padding:8px 13px 9px;}
+    .cname{font-size:15px;font-weight:500;color:#1A0E08;margin-bottom:1px;}
+    .ccuis{font-size:10px;color:#C4512A;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;}
+    .cdesc{font-size:11px;color:#5A4035;line-height:1.4;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    .halal-badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:500;margin-bottom:4px;}
+    .halal-yes{background:#D1FAE5;color:#065F46;} .halal-no{background:#FEE2E2;color:#991B1B;}
+    .ctags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;}
+    .ctag{background:#FFF0EA;color:#C4512A;border-radius:12px;padding:2px 7px;font-size:10px;}
+    .cmeta{display:flex;flex-wrap:wrap;gap:5px;border-top:.5px solid #F5E0D0;padding-top:5px;}
+    .cmeta span{font-size:10px;color:#8A6055;}
+    .hint{position:absolute;top:50%;transform:translateY(-50%);font-size:18px;font-weight:700;border-radius:8px;padding:5px 12px;opacity:0;pointer-events:none;transition:opacity .12s;z-index:20;}
+    .hl{left:16px;color:#22C55E;border:3px solid #22C55E;} .hn{right:16px;color:#EF4444;border:3px solid #EF4444;}
+
+    /* ACTION BAR */
+    .actbar{display:flex;justify-content:center;align-items:center;gap:22px;padding:8px 0 12px;background:transparent;flex-shrink:0;position:relative;}
+    .abtn{border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;background:transparent;outline:none;padding:0;position:relative;}
+    .abtn:active{transform:scale(.93);}
+    .albl{font-size:9px;font-weight:500;color:#A06040;letter-spacing:.3px;text-transform:uppercase;}
+    .skip-ico{width:52px;height:52px;border-radius:50%;background:#EF4444;box-shadow:0 4px 14px rgba(239,68,68,.4);display:flex;align-items:center;justify-content:center;transition:transform .12s;}
+    .like-ico{width:64px;height:64px;border-radius:50%;background:#F59E0B;box-shadow:0 4px 18px rgba(245,158,11,.5);display:flex;align-items:center;justify-content:center;transition:transform .12s;}
+    .gonow-ico{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#FFD700,#FFC200);display:flex;align-items:center;justify-content:center;transition:transform .12s;animation:goldenGlow 2s ease-in-out infinite;}
+    @keyframes goldenGlow{0%,100%{box-shadow:0 4px 14px rgba(255,200,0,.5),0 0 0 0 rgba(255,215,0,.4);}50%{box-shadow:0 4px 22px rgba(255,200,0,.7),0 0 0 10px rgba(255,215,0,0);}}
+    .abtn:hover .skip-ico,.abtn:hover .like-ico,.abtn:hover .gonow-ico{transform:scale(1.1);}
+
+    /* HEARTS */
+    .fheart{position:absolute;pointer-events:none;font-size:18px;animation:floatUp 1s ease-out forwards;z-index:100;}
+    @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-80px) scale(1.4);}}
+
+    /* EMPTY STATE */
+    .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px 24px;width:340px;height:370px;}
+    .empty-emoji{font-size:72px;line-height:1;margin-bottom:10px;}
+    .empty-title{font-size:17px;font-weight:500;color:#C4512A;margin-bottom:5px;}
+    .empty-sub{font-size:12px;color:#A06040;margin-bottom:16px;line-height:1.5;}
+    .refresh-btn{background:#C4512A;color:#fff;border:none;border-radius:50px;padding:10px 26px;font-size:13px;font-weight:500;cursor:pointer;transition:transform .15s;font-family:inherit;}
+    .refresh-btn:hover{transform:scale(1.05);}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1A0E08;color:#fff;border-radius:20px;padding:7px 16px;font-size:12px;opacity:0;pointer-events:none;transition:opacity .3s;white-space:nowrap;z-index:999;}
+    .toast.show{opacity:1;}
+
+    /* SAVED */
+    #psaved{display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
+    .svdhdr{padding:10px 18px 8px;background:rgba(196,81,42,.08);flex-shrink:0;}
+    .svdhdr h2{font-size:15px;font-weight:500;color:#C4512A;margin-bottom:1px;}
+    .svdhdr p{font-size:12px;color:#A06040;}
+    .spin-btn{display:block;width:calc(100% - 28px);margin:8px 14px 0;background:#C4512A;color:#fff;border:none;border-radius:50px;padding:10px;font-size:13px;font-weight:500;cursor:pointer;transition:transform .15s;flex-shrink:0;font-family:inherit;}
+    .spin-btn:hover{transform:scale(1.02);}
+    .svdlist{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 11px 14px;display:flex;flex-direction:column;gap:8px;min-height:0;-webkit-overflow-scrolling:touch;}
+    .svdlist::-webkit-scrollbar{width:3px;}
+    .svdlist::-webkit-scrollbar-thumb{background:rgba(196,81,42,.25);border-radius:3px;}
+    .svdcard{background:#fff;border-radius:14px;overflow:hidden;display:flex;box-shadow:0 3px 12px rgba(196,81,42,.12);flex-shrink:0;}
+    .sico{width:70px;min-width:70px;height:74px;overflow:hidden;flex-shrink:0;position:relative;background:#f0e8dc;}
+    .sico img{width:100%;height:100%;object-fit:cover;display:block;}
+    .sico .sico-fb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px;}
+    .sinf{flex:1;padding:8px 5px 8px 7px;display:flex;flex-direction:column;justify-content:center;min-width:0;}
+    .sname{font-size:12px;font-weight:500;color:#1A0E08;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .shalal{font-size:10px;font-weight:500;margin-bottom:2px;}
+    .shalal.y{color:#065F46;} .shalal.n{color:#991B1B;}
+    .ssub{font-size:10px;color:#C4512A;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .smeta{font-size:10px;color:#8A6055;display:flex;gap:6px;flex-wrap:wrap;}
+    .sact{display:flex;flex-direction:column;justify-content:center;gap:5px;padding:6px 8px 6px 3px;flex-shrink:0;}
+    .mbtn{background:#C4512A;color:#fff;border:none;border-radius:10px;padding:5px 8px;font-size:10px;font-weight:500;cursor:pointer;white-space:nowrap;font-family:inherit;}
+    .mbtn:hover{background:#a8401f;}
+    .rbtn{background:transparent;color:#bbb;border:.5px solid #eee;border-radius:10px;padding:4px 8px;font-size:10px;cursor:pointer;font-family:inherit;}
+    .rbtn:hover{color:#EF4444;border-color:#EF4444;}
+    .svdempty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 26px;}
+    .svdempty .eico{font-size:46px;margin-bottom:12px;}
+    .svdempty p{font-size:14px;color:#A06040;line-height:1.7;}
+
+    /* WHEEL */
+    .wheel-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.65);z-index:500;display:flex;align-items:center;justify-content:center;}
+    .wheel-box{background:#fff;border-radius:24px;padding:16px 16px 18px;width:340px;max-width:95vw;text-align:center;}
+    .wheel-title{font-size:15px;font-weight:500;color:#1A0E08;margin-bottom:10px;}
+    .wheel-wrap{position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+    .wheel-pointer{position:absolute;top:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:20px solid #EF4444;z-index:10;}
+    #wheelCanvas{border-radius:50%;display:block;}
+    .wheel-result{min-height:42px;margin-bottom:10px;}
+    .wheel-result .wr-emoji{font-size:26px;}
+    .wheel-result .wr-name{font-size:14px;font-weight:500;color:#1A0E08;margin-top:4px;}
+    .wheel-result .wr-sub{font-size:11px;color:#8A6055;}
+    .wheel-actions{display:flex;gap:8px;justify-content:center;}
+    .w-spin-btn{background:#C4512A;color:#fff;border:none;border-radius:50px;padding:9px 22px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;}
+    .w-close-btn{background:#f5f5f5;color:#555;border:none;border-radius:50px;padding:9px 16px;font-size:12px;cursor:pointer;font-family:inherit;}
+    .w-maps-btn{background:#22C55E;color:#fff;border:none;border-radius:50px;padding:9px 16px;font-size:12px;font-weight:500;cursor:pointer;display:none;font-family:inherit;}
+
+    /* CONFETTI */
+    #confettiCanvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:600;display:none;}
+
+    /* LOCATION PERMISSION BANNER */
+    .loc-banner{background:#FFF3CD;border-bottom:1px solid #FFDAA5;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px;}
+    .loc-banner p{font-size:11px;color:#7A4F00;flex:1;line-height:1.4;}
+    .loc-banner button{background:#C4512A;color:#fff;border:none;border-radius:20px;padding:5px 12px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0;}
+    .loc-banner .dismiss{background:transparent;color:#A06040;font-size:16px;padding:0 4px;cursor:pointer;}
+
+    @media(max-width:430px){#app{max-width:100%;min-height:100dvh;}}
+  </style>
+</head>
+<body>
+<canvas id="confettiCanvas"></canvas>
+<div id="app">
+  <div class="hdr">
+    <div class="logo">
+      <svg width="30" height="30" viewBox="0 0 38 38" fill="none">
+        <ellipse cx="19" cy="30" rx="10" ry="4.5" fill="#F5DEB3"/>
+        <rect x="10" y="25" width="18" height="7" rx="3.5" fill="#DEB887"/>
+        <path d="M10 25 Q11.5 20 19 20 Q26.5 20 28 25 Z" fill="#E8C48A"/>
+        <ellipse cx="19" cy="16" rx="9" ry="8" fill="#FF8FA3"/>
+        <path d="M11 18 Q12 10 19 9.5 Q26 10 27 18" fill="#FF6B81"/>
+        <path d="M14 14 Q15.5 10 19 10 Q22.5 10 24 14" fill="#FF4D6D"/>
+        <circle cx="19" cy="9" r="2.2" fill="#C4512A"/>
+        <circle cx="19" cy="7.2" r="1.1" fill="#FFD700"/>
+      </svg>
+      <span class="ltxt">Feed</span>
+    </div>
+    <div class="loc-wrap">
+      <div class="loc-gps" id="locGps" onclick="requestLocation()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+        <span id="locGpsLabel">Use my location</span>
+      </div>
+      <div class="loc-tabs">
+        <div class="loc-tab on" id="loc-kl" onclick="setLocation('kl')">Klang Valley</div>
+        <div class="loc-tab" id="loc-kd" onclick="setLocation('kd')">Kota Damansara</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="loc-banner" id="locBanner" style="display:none;">
+    <p>📍 Allow location access to auto-detect your area and show nearby spots.</p>
+    <button onclick="requestLocation()">Allow</button>
+    <button class="dismiss" onclick="dismissBanner()">✕</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" id="tdiscover" onclick="switchTab('discover')">Discover</div>
+    <div class="tab" id="tsaved" onclick="switchTab('saved')">Saved <span class="nbadge" id="nbadge">0</span></div>
+  </div>
+
+  <div id="pdiscover">
+    <div class="moodbar">
+      <div class="mlbl">Mood</div>
+      <div class="pills">
+        <div class="pill" id="pill-group"    onclick="toggleMood('group')">   <span class="pdot"></span>👥 Group</div>
+        <div class="pill" id="pill-date"     onclick="toggleMood('date')">    <span class="pdot"></span>🌹 Date Night</div>
+        <div class="pill" id="pill-drinks"   onclick="toggleMood('drinks')">  <span class="pdot"></span>🍸 Drinks</div>
+        <div class="pill" id="pill-ngopi"    onclick="toggleMood('ngopi')">   <span class="pdot"></span>☕ Ngopi</div>
+        <div class="pill" id="pill-fastfood" onclick="toggleMood('fastfood')"><span class="pdot"></span>🍟 Fast Food</div>
+        <div class="pill" id="pill-snack"    onclick="toggleMood('snack')">   <span class="pdot"></span>🍟 Snack</div>
+      </div>
+    </div>
+    <div class="filterbar">
+      <div class="frow"><span>Search radius</span><span class="fval" id="radval">10 km</span></div>
+      <input type="range" id="radslider" min="2" max="50" step="1" value="10">
+    </div>
+    <div class="filterbar" style="padding-top:2px;">
+      <div class="frow"><span>Max price</span><span class="fval" id="priceval">RM 999</span></div>
+      <input type="range" id="priceslider" min="0" max="999" step="10" value="999">
+    </div>
+    <div class="cardarea">
+      <div class="hint hl" id="hl">LIKE</div>
+      <div class="hint hn" id="hn">SKIP</div>
+      <div class="stack" id="stack"></div>
+    </div>
+    <div class="actbar">
+      <button class="abtn" id="btnSkip">
+        <div class="skip-ico"><svg width="24" height="24" viewBox="0 0 26 26" fill="none"><path d="M7 13L19 13M15 9L19 13L15 17" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <span class="albl">Skip</span>
+      </button>
+      <button class="abtn" id="btnLike">
+        <div class="like-ico"><svg width="32" height="32" viewBox="0 0 36 36" fill="none"><path d="M18 31C18 31 4 22 4 13C4 8.6 7.6 5 12 5C14.6 5 16.9 6.3 18 8.2C19.1 6.3 21.4 5 24 5C28.4 5 32 8.6 32 13C32 22 18 31 18 31Z" fill="#EF4444" stroke="#C0392B" stroke-width="1"/></svg></div>
+        <span class="albl">Like</span>
+      </button>
+      <button class="abtn" id="btnGoNow">
+        <div class="gonow-ico"><svg width="24" height="24" viewBox="0 0 26 26" fill="none"><circle cx="13" cy="13" r="9" stroke="#1A0E08" stroke-width="1.8" fill="none"/><path d="M10 13L13 7L16 13" stroke="#1A0E08" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 7L13 19" stroke="#1A0E08" stroke-width="2.2" stroke-linecap="round"/><circle cx="13" cy="19" r="1.6" fill="#1A0E08"/></svg></div>
+        <span class="albl">Go Now!</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="psaved">
+    <div class="svdhdr">
+      <h2>Your saved spots</h2>
+      <p id="svdsub">Places you liked — ready when you are</p>
+    </div>
+    <button class="spin-btn" id="spinWheelBtn" onclick="openWheel()" style="display:none;">🎡 Spin the Wheel — Let fate decide!</button>
+    <div class="svdlist" id="svdlist"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="wheel-overlay" id="wheelOverlay" style="display:none;">
+    <div class="wheel-box">
+      <div class="wheel-title">🎡 Where should we eat?</div>
+      <div class="wheel-wrap">
+        <div class="wheel-pointer"></div>
+        <canvas id="wheelCanvas" width="260" height="260"></canvas>
+      </div>
+      <div class="wheel-result" id="wheelResult"></div>
+      <div class="wheel-actions">
+        <button class="w-close-btn" onclick="closeWheel()">Close</button>
+        <button class="w-spin-btn" id="wSpinBtn" onclick="spinWheel()">🎰 Spin!</button>
+        <button class="w-maps-btn" id="wMapsBtn">📍 Go There</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
